@@ -1,3 +1,9 @@
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    category=RuntimeWarning,
+    message="you are using an unsupported version of pandoc"
+)
 """The classes for specifying and compiling a declarative visualization."""
 from __future__ import annotations
 
