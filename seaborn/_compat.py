@@ -1,11 +1,19 @@
 from __future__ import annotations
-from typing import Literal
+from typing import Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
 from matplotlib.figure import Figure
 from seaborn.utils import _version_predates
+
+
+__all__ = [
+    "norm_from_scale", "get_colormap", "register_colormap", 
+    "set_layout_engine", "get_layout_engine", "share_axis", 
+    "get_legend_handles", "groupby_apply_include_groups",
+    "safe_date_range",
+]
 
 
 def norm_from_scale(scale, norm):
@@ -121,3 +129,33 @@ def groupby_apply_include_groups(val):
     if _version_predates(pd, "2.2.0"):
         return {}
     return {"include_groups": val}
+
+
+# Store the original pandas date_range function
+_original_date_range = pd.date_range
+
+def safe_date_range(
+    start=None,
+    end=None,
+    periods=None,
+    freq=None,
+    **kwargs
+) -> pd.DatetimeIndex:
+    """
+    Create a date range that works across pandas versions.
+    
+    In older pandas versions (like 1.2.0), 'ME' frequency is not valid,
+    but 'M' is used for month end. In newer versions, 'ME' is the recommended
+    frequency for month end and 'M' is deprecated.
+    
+    This function handles the compatibility by trying 'ME' first and falling back
+    to 'M' if needed.
+    """
+    if freq == "ME":
+        try:
+            return _original_date_range(start=start, end=end, periods=periods, freq=freq, **kwargs)
+        except ValueError:
+            # Fall back to 'M' for older pandas versions
+            return _original_date_range(start=start, end=end, periods=periods, freq="M", **kwargs)
+    else:
+        return _original_date_range(start=start, end=end, periods=periods, freq=freq, **kwargs)
