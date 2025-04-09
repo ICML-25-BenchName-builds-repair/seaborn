@@ -665,6 +665,25 @@ class TestWeightedAggregator:
         with pytest.raises(ValueError, match="Error bar method must be 'ci'"):
             WeightedAggregator("mean", "sd")
 
+    def test_zero_weights(self):
+        """Test that zero weights are handled gracefully."""
+        df = pd.DataFrame({
+            "weight": [0, 0, 0],  # All weights are zero
+            "y": [1, 2, 3]
+        })
+        est = WeightedAggregator("mean")
+        out = est(df, "y")
+        assert np.isnan(out["y"])
+        assert np.isnan(out["ymin"])
+        assert np.isnan(out["ymax"])
+
+        # Test with CI
+        est_ci = WeightedAggregator("mean", "ci")
+        out_ci = est_ci(df, "y")
+        assert np.isnan(out_ci["y"])
+        assert np.isnan(out_ci["ymin"])
+        assert np.isnan(out_ci["ymax"])
+
 
 class TestLetterValues:
 

@@ -558,18 +558,28 @@ class WeightedAggregator:
         vals = data[var]
         weights = data["weight"]
 
-        estimate = np.average(vals, weights=weights)
-
-        if self.error_method == "ci" and len(data) > 1:
-
-            def error_func(x, w):
-                return np.average(x, weights=w)
-
-            boots = bootstrap(vals, weights, func=error_func, **self.boot_kws)
-            err_min, err_max = _percentile_interval(boots, self.error_level)
-
+        # Check if weights sum to zero to avoid ZeroDivisionError
+        if np.sum(weights) == 0:
+            # If weights sum to zero, return NaN for the estimate
+            estimate = np.nan
+            err_min = np.nan
+            err_max = np.nan
         else:
-            err_min = err_max = np.nan
+            estimate = np.average(vals, weights=weights)
+
+            if self.error_method == "ci" and len(data) > 1:
+
+                def error_func(x, w):
+                    # This inner function also needs protection against zero weights
+                    if np.sum(w) == 0:
+                        return np.nan
+                    return np.average(x, weights=w)
+
+                boots = bootstrap(vals, weights, func=error_func, **self.boot_kws)
+                err_min, err_max = _percentile_interval(boots, self.error_level)
+
+            else:
+                err_min = err_max = np.nan
 
         return pd.Series({var: estimate, f"{var}min": err_min, f"{var}max": err_max})
 
