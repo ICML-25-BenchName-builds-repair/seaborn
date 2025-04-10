@@ -558,11 +558,18 @@ class WeightedAggregator:
         vals = data[var]
         weights = data["weight"]
 
-        estimate = np.average(vals, weights=weights)
+        # Check if weights sum to zero to avoid ZeroDivisionError
+        if weights.sum() == 0:
+            estimate = np.nan  # Return NaN for undefined weighted average
+        else:
+            estimate = np.average(vals, weights=weights)
 
         if self.error_method == "ci" and len(data) > 1:
 
             def error_func(x, w):
+                # Check if weights sum to zero to avoid ZeroDivisionError
+                if w.sum() == 0:
+                    return np.nan
                 return np.average(x, weights=w)
 
             boots = bootstrap(vals, weights, func=error_func, **self.boot_kws)
