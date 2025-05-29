@@ -121,3 +121,27 @@ def groupby_apply_include_groups(val):
     if _version_predates(pd, "2.2.0"):
         return {}
     return {"include_groups": val}
+
+
+# Monkey-patch pandas.date_range to handle frequency compatibility
+if not hasattr(pd.date_range, '_seaborn_patched'):
+    _original_date_range = pd.date_range
+
+    def _compatible_date_range(*args, **kwargs):
+        """
+        Wrapper for pd.date_range that handles frequency alias compatibility.
+        
+        In pandas < 2.0, 'ME' (Month End) frequency alias doesn't exist,
+        but 'M' does the same thing. This function provides backward compatibility.
+        """
+        if 'freq' in kwargs:
+            freq = kwargs['freq']
+            # Handle ME -> M conversion for older pandas versions
+            if freq == 'ME' and _version_predates(pd, "2.0.0"):
+                kwargs['freq'] = 'M'
+        
+        return _original_date_range(*args, **kwargs)
+
+    # Apply the monkey patch
+    _compatible_date_range._seaborn_patched = True
+    pd.date_range = _compatible_date_range
